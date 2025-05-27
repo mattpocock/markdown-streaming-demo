@@ -1,15 +1,25 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useCallback } from "react"
-import { Textarea } from "@/components/ui/textarea"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Play, Pause, SkipBack, SkipForward, Share2, Download } from "lucide-react"
-import ReactMarkdown from "react-markdown"
-import { Tiktoken } from "js-tiktoken/lite"
-import o200k_base from "js-tiktoken/ranks/o200k_base"
-import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from "lz-string"
+import { useState, useEffect, useCallback } from "react";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  Share2,
+  Download,
+} from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import { Tiktoken } from "js-tiktoken/lite";
+import o200k_base from "js-tiktoken/ranks/o200k_base";
+import {
+  compressToEncodedURIComponent,
+  decompressFromEncodedURIComponent,
+} from "lz-string";
 
 const defaultMarkdown = `# Markdown Streaming Demo
 
@@ -37,133 +47,137 @@ console.log('Token count:', tokens.length);
 
 ---
 
-*Happy streaming!* 🚀`
+*Happy streaming!* 🚀`;
 
 export default function MarkdownStreamingDemo() {
-  const [markdown, setMarkdown] = useState(defaultMarkdown)
-  const [tokens, setTokens] = useState<number[]>([])
-  const [currentTokenIndex, setCurrentTokenIndex] = useState(0)
-  const [encoder] = useState<Tiktoken>(() => new Tiktoken(o200k_base))
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [playbackSpeed, setPlaybackSpeed] = useState(100)
+  const [markdown, setMarkdown] = useState(defaultMarkdown);
+  const [tokens, setTokens] = useState<number[]>([]);
+  const [currentTokenIndex, setCurrentTokenIndex] = useState(0);
+  const [encoder] = useState<Tiktoken>(() => new Tiktoken(o200k_base));
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(100);
 
   // Load markdown from URL on mount
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const compressed = urlParams.get("md")
+    const urlParams = new URLSearchParams(window.location.search);
+    const compressed = urlParams.get("md");
     if (compressed) {
       try {
-        const decompressed = decompressFromEncodedURIComponent(compressed)
+        const decompressed = decompressFromEncodedURIComponent(compressed);
         if (decompressed) {
-          setMarkdown(decompressed)
+          setMarkdown(decompressed);
         }
       } catch (error) {
-        console.error("Failed to decompress markdown from URL:", error)
+        console.error("Failed to decompress markdown from URL:", error);
       }
     }
-  }, [])
+  }, []);
 
   // Tokenize markdown when it changes
   useEffect(() => {
     if (markdown) {
       try {
-        const newTokens = encoder.encode(markdown)
-        setTokens(newTokens)
-        setCurrentTokenIndex(0)
+        const newTokens = encoder.encode(markdown);
+        setTokens(newTokens);
+        setCurrentTokenIndex(0);
       } catch (error) {
-        console.error("Failed to tokenize markdown:", error)
-        setTokens([])
+        console.error("Failed to tokenize markdown:", error);
+        setTokens([]);
       }
     }
-  }, [encoder, markdown])
+  }, [encoder, markdown]);
 
   // Auto-play functionality
   useEffect(() => {
     if (isPlaying && currentTokenIndex < tokens.length) {
       const timer = setTimeout(() => {
-        setCurrentTokenIndex((prev) => Math.min(prev + 1, tokens.length))
-      }, playbackSpeed)
-      return () => clearTimeout(timer)
+        setCurrentTokenIndex((prev) => Math.min(prev + 1, tokens.length));
+      }, playbackSpeed);
+      return () => clearTimeout(timer);
     } else if (isPlaying && currentTokenIndex >= tokens.length) {
-      setIsPlaying(false)
+      setIsPlaying(false);
     }
-  }, [isPlaying, currentTokenIndex, tokens.length, playbackSpeed])
+  }, [isPlaying, currentTokenIndex, tokens.length, playbackSpeed]);
 
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLTextAreaElement) return
+      if (e.target instanceof HTMLTextAreaElement) return;
 
       switch (e.key) {
         case "ArrowLeft":
-          e.preventDefault()
-          setCurrentTokenIndex((prev) => Math.max(0, prev - 1))
-          setIsPlaying(false)
-          break
+          e.preventDefault();
+          setCurrentTokenIndex((prev) => Math.max(0, prev - 1));
+          setIsPlaying(false);
+          break;
         case "ArrowRight":
-          e.preventDefault()
-          setCurrentTokenIndex((prev) => Math.min(prev + 1, tokens.length))
-          setIsPlaying(false)
-          break
+          e.preventDefault();
+          setCurrentTokenIndex((prev) => Math.min(prev + 1, tokens.length));
+          setIsPlaying(false);
+          break;
         case " ":
-          e.preventDefault()
-          setIsPlaying((prev) => !prev)
-          break
+          e.preventDefault();
+          setIsPlaying((prev) => !prev);
+          break;
       }
-    }
+    };
 
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [tokens.length])
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [tokens.length]);
 
   // Get current markdown up to current token
   const getCurrentMarkdown = useCallback(() => {
-    if (tokens.length === 0) return ""
+    if (tokens.length === 0) return "";
 
     try {
-      const currentTokens = tokens.slice(0, currentTokenIndex)
-      return encoder.decode(currentTokens)
+      const currentTokens = tokens.slice(0, currentTokenIndex);
+      return encoder.decode(currentTokens);
     } catch (error) {
-      console.error("Failed to decode tokens:", error)
-      return ""
+      console.error("Failed to decode tokens:", error);
+      return "";
     }
-  }, [encoder, tokens, currentTokenIndex])
+  }, [encoder, tokens, currentTokenIndex]);
 
   const handleShare = async () => {
     try {
-      const compressed = compressToEncodedURIComponent(markdown)
-      const url = new URL(window.location.href)
-      url.searchParams.set("md", compressed)
+      const compressed = compressToEncodedURIComponent(markdown);
+      const url = new URL(window.location.href);
+      url.searchParams.set("md", compressed);
 
-      await navigator.clipboard.writeText(url.toString())
-      alert("URL copied to clipboard!")
+      await navigator.clipboard.writeText(url.toString());
+      alert("URL copied to clipboard!");
     } catch (error) {
-      console.error("Failed to share:", error)
-      alert("Failed to copy URL")
+      console.error("Failed to share:", error);
+      alert("Failed to copy URL");
     }
-  }
+  };
 
   const togglePlayback = () => {
-    setIsPlaying(!isPlaying)
-  }
+    setIsPlaying(!isPlaying);
+  };
 
   const resetToStart = () => {
-    setCurrentTokenIndex(0)
-    setIsPlaying(false)
-  }
+    setCurrentTokenIndex(0);
+    setIsPlaying(false);
+  };
 
   const skipToEnd = () => {
-    setCurrentTokenIndex(tokens.length)
-    setIsPlaying(false)
-  }
+    setCurrentTokenIndex(tokens.length);
+    setIsPlaying(false);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-gray-900">Markdown Streaming Demo</h1>
-          <p className="text-gray-600">See how Markdown is streamed token by token from LLMs</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Markdown Streaming Demo
+          </h1>
+          <p className="text-gray-600">
+            See how Markdown is streamed token by token from LLMs
+          </p>
         </div>
 
         {/* Controls */}
@@ -186,7 +200,11 @@ export default function MarkdownStreamingDemo() {
                   <SkipBack className="w-4 h-4" />
                 </Button>
                 <Button onClick={togglePlayback} variant="outline" size="sm">
-                  {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                  {isPlaying ? (
+                    <Pause className="w-4 h-4" />
+                  ) : (
+                    <Play className="w-4 h-4" />
+                  )}
                 </Button>
                 <Button onClick={skipToEnd} variant="outline" size="sm">
                   <SkipForward className="w-4 h-4" />
@@ -210,7 +228,9 @@ export default function MarkdownStreamingDemo() {
                 <Badge variant="secondary">
                   Token {currentTokenIndex} / {tokens.length}
                 </Badge>
-                <Badge variant="outline">{Math.round((currentTokenIndex / tokens.length) * 100) || 0}%</Badge>
+                <Badge variant="outline">
+                  {Math.round((currentTokenIndex / tokens.length) * 100) || 0}%
+                </Badge>
               </div>
             </div>
 
@@ -218,12 +238,16 @@ export default function MarkdownStreamingDemo() {
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
                   className="bg-blue-600 h-2 rounded-full transition-all duration-100"
-                  style={{ width: `${(currentTokenIndex / tokens.length) * 100}%` }}
+                  style={{
+                    width: `${(currentTokenIndex / tokens.length) * 100}%`,
+                  }}
                 />
               </div>
             </div>
 
-            <p className="text-xs text-gray-500 mt-2">Use ← → arrow keys to navigate, spacebar to play/pause</p>
+            <p className="text-xs text-gray-500 mt-2">
+              Use ← → arrow keys to navigate, spacebar to play/pause
+            </p>
           </CardContent>
         </Card>
 
@@ -257,44 +281,68 @@ export default function MarkdownStreamingDemo() {
                       // Minimal error handling - let Tailwind Typography handle the styling
                       p: ({ children, ...props }) => {
                         try {
-                          return <p {...props}>{children}</p>
+                          return <p {...props}>{children}</p>;
                         } catch (error) {
-                          return <p className="text-red-500">Error rendering paragraph</p>
+                          return (
+                            <p className="text-red-500">
+                              Error rendering paragraph
+                            </p>
+                          );
                         }
                       },
                       code: ({ children, ...props }) => {
                         try {
-                          return <code {...props}>{children}</code>
+                          return <code {...props}>{children}</code>;
                         } catch (error) {
-                          return <code className="text-red-500">Error rendering code</code>
+                          return (
+                            <code className="text-red-500">
+                              Error rendering code
+                            </code>
+                          );
                         }
                       },
                       pre: ({ children, ...props }) => {
                         try {
-                          return <pre {...props}>{children}</pre>
+                          return <pre {...props}>{children}</pre>;
                         } catch (error) {
-                          return <pre className="text-red-500">Error rendering code block</pre>
+                          return (
+                            <pre className="text-red-500">
+                              Error rendering code block
+                            </pre>
+                          );
                         }
                       },
                       ul: ({ children, ...props }) => {
                         try {
-                          return <ul {...props}>{children}</ul>
+                          return <ul {...props}>{children}</ul>;
                         } catch (error) {
-                          return <ul className="text-red-500">Error rendering unordered list</ul>
+                          return (
+                            <ul className="text-red-500">
+                              Error rendering unordered list
+                            </ul>
+                          );
                         }
                       },
                       ol: ({ children, ...props }) => {
                         try {
-                          return <ol {...props}>{children}</ol>
+                          return <ol {...props}>{children}</ol>;
                         } catch (error) {
-                          return <ol className="text-red-500">Error rendering ordered list</ol>
+                          return (
+                            <ol className="text-red-500">
+                              Error rendering ordered list
+                            </ol>
+                          );
                         }
                       },
                       li: ({ children, ...props }) => {
                         try {
-                          return <li {...props}>{children}</li>
+                          return <li {...props}>{children}</li>;
                         } catch (error) {
-                          return <li className="text-red-500">Error rendering list item</li>
+                          return (
+                            <li className="text-red-500">
+                              Error rendering list item
+                            </li>
+                          );
                         }
                       },
                     }}
@@ -315,49 +363,51 @@ export default function MarkdownStreamingDemo() {
           <CardContent>
             <div className="max-h-64 overflow-y-auto border rounded-lg p-3 bg-gray-50 font-mono text-xs">
               {tokens.map((token, index) => {
-                const isActive = index < currentTokenIndex
-                const tokenText = encoder.decode([token]) || ""
-                const isNewline = tokenText.includes('\n')
+                const isActive = index < currentTokenIndex;
+                const tokenText = encoder.decode([token]) || "";
+                const isNewline = tokenText.includes("\n");
 
                 return (
-                <>
-               
-                  <span
-                    key={index}
-                    className={`inline-block px-1 py-0.5 border rounded cursor-pointer transition-colors ${
-                      isActive
-                        ? "bg-blue-100 border-blue-300 text-blue-800"
-                        : "bg-white border-gray-200 text-gray-600 hover:bg-gray-100"
-                    }`}
-                    onClick={() => {
-                      setCurrentTokenIndex(index + 1)
-                      setIsPlaying(false)
-                    }}
-                    title={`Token ${index}: "${tokenText}"`}
-                  >
-                    {tokenText.replace(/\t/g, "→").replace(/\n/g, "⤶") || "∅"}
-                  </span>
-                   {isNewline && (
-                <div
+                  <>
+                    <span
                       key={index}
-                      className={`w-full h-4 ${isActive ? "bg-blue-100" : ""}`}
+                      className={`inline-block px-1 py-0.5 border rounded cursor-pointer transition-colors ${
+                        isActive
+                          ? "bg-blue-100 border-blue-300 text-blue-800"
+                          : "bg-white border-gray-200 text-gray-600 hover:bg-gray-100"
+                      }`}
                       onClick={() => {
-                        setCurrentTokenIndex(index + 1)
-                        setIsPlaying(false)
+                        setCurrentTokenIndex(index + 1);
+                        setIsPlaying(false);
                       }}
-                      title={`Token ${index}: "\\n"`}
-                    />
-                )}
+                      title={`Token ${index}: "${tokenText}"`}
+                    >
+                      {tokenText.replace(/\t/g, "→").replace(/\n/g, "⤶") || "∅"}
+                    </span>
+                    {isNewline && (
+                      <div
+                        key={index}
+                        className={`w-full h-4 ${
+                          isActive ? "bg-blue-100" : ""
+                        }`}
+                        onClick={() => {
+                          setCurrentTokenIndex(index + 1);
+                          setIsPlaying(false);
+                        }}
+                        title={`Token ${index}: "\\n"`}
+                      />
+                    )}
                   </>
-                )
+                );
               })}
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              Showing all {tokens.length} tokens. Click any token to jump to that position.
+              Showing all {tokens.length} tokens. Click any token to jump to
+              that position.
             </p>
           </CardContent>
         </Card>
       </div>
     </div>
-  )
+  );
 }
