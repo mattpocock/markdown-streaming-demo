@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -368,9 +368,8 @@ export default function MarkdownStreamingDemo() {
                 const isNewline = tokenText.includes("\n");
 
                 return (
-                  <>
+                  <React.Fragment key={index}>
                     <span
-                      key={index}
                       className={`inline-block px-1 py-0.5 border rounded cursor-pointer transition-colors ${
                         isActive
                           ? "bg-blue-100 border-blue-300 text-blue-800"
@@ -386,7 +385,6 @@ export default function MarkdownStreamingDemo() {
                     </span>
                     {isNewline && (
                       <div
-                        key={index}
                         className={`w-full h-4 ${
                           isActive ? "bg-blue-100" : ""
                         }`}
@@ -397,7 +395,7 @@ export default function MarkdownStreamingDemo() {
                         title={`Token ${index}: "\\n"`}
                       />
                     )}
-                  </>
+                  </React.Fragment>
                 );
               })}
             </div>
